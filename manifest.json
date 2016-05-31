@@ -1,8 +1,8 @@
 {
   "manifest_version": 2,
 
-  "name": "Getting started example",
-  "description": "This extension shows a Google Image search result for the current page",
+  "name": "Agar.io Server Selection Shortcut",
+  "description": "Let's you select the specific servers to play with your friends",
   "version": "1.0",
 
   "browser_action": {
