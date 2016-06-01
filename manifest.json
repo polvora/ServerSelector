@@ -12,6 +12,7 @@
   },
   "permissions": [
     "tabs",
-	"*://*.agar.io/*"
+	"*://*.agar.io/*",
+	"storage"
   ]
 }

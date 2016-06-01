@@ -44,7 +44,8 @@ $(function() {
 function serverListCallback(serverList) {
 	var regionCode = "";
 	var inRegion = false;
-	var region;
+	var region = "";
+	var serverName = "";
 	
 	// Sort alphabetically
 	serverList.servers.sort(function (a, b) {
@@ -73,12 +74,34 @@ function serverListCallback(serverList) {
 		
 		// Store server for region
 		if (server.isEnabled) {
-			options[region] += '<option value="' + server.ip + '">' + server.region.replace('-', ' ') + ' (' + server.ip + ') (' + server.numPlayers + ' players)</option>';
+			serverName = generateServerNameString(server.region)
+			options[region] += '<option value="' + server.ip + '">' + serverName + ' (' + server.ip + ') (' + server.numPlayers + ' players)</option>';
 		}
 	});
 	
 	$('#Combobox1').prop("disabled", false);
 	$('#Combobox2').prop("disabled", false);
+}
+
+function generateServerNameString(string) {
+	var code;
+	var hasColon;
+	var city;
+	var mode;
+	
+	code = string.substring(0,2);
+	hasColon = ~string.indexOf(':');
+	city = string.substring(string.indexOf('-') + 1, hasColon? string.indexOf(':') : string.length);
+	mode = hasColon? string.substring(string.indexOf(':') + 1) : 'ffa';
+	
+	switch(mode) {
+		case 'ffa': mode = 'FFA'; break;
+		case 'teams': mode = 'Teams'; break;
+		case 'experimental': mode = 'Exp'; break;
+		case 'party': mode = 'Party'; break;
+	}
+	
+	return code + ' ' + city + ' (' + mode + ')';
 }
 
 function regionChangeEvent() {
