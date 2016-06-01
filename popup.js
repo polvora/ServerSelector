@@ -61,7 +61,6 @@ function serverListCallback(serverList) {
 				region = regions[i];
 			}
 		}
-		console.log(region);
 		// Check if region wasn't added before
 		if (!(~$('#Combobox1').html().indexOf(regionNames[region]))) {
 			// Add region as option
@@ -80,8 +79,6 @@ function serverListCallback(serverList) {
 
 function regionChangeEvent() {
 	var region =  $(this).find('option:selected').val();
-	if (region == null) return;
-	console.log(region);
 	$('#Combobox2').html('<option value="invalid">Select Server...</option>');
-	$('#Combobox2').append(options[region]);
+	if (region != 'invalid') $('#Combobox2').append(options[region]);
 }
