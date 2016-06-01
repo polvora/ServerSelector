@@ -4,7 +4,7 @@ var regionTable = {
     'NA': ['US'],
     'EU': ['EU', 'RU', 'TK'],
     'AS': ['JP', 'TK', 'SG', 'CN'],
-    'SA': ['BR'],
+	'SA': ['BR'],
 	'OC': ['SG']
 };
 
@@ -31,10 +31,14 @@ $(function() {
 	
 	$('#Combobox1').prop("disabled", true);
 	$('#Combobox2').prop("disabled", true);
+	$('#Button1').prop("disabled", true);
+	$('#Button2').prop("disabled", true);
 	
 	$.getJSON('http://m.agar.io/fullInfo', serverListCallback);
 
 	$('#Combobox1').change(regionChangeEvent);
+	$('#Combobox2').change(serverChangeEvent);
+	$('#Button1').click(goToPublicServerEvent);
 });
 
 function serverListCallback(serverList) {
@@ -79,6 +83,33 @@ function serverListCallback(serverList) {
 
 function regionChangeEvent() {
 	var region =  $(this).find('option:selected').val();
+	
 	$('#Combobox2').html('<option value="invalid">Select Server...</option>');
 	if (region != 'invalid') $('#Combobox2').append(options[region]);
+	
+	$('#Button1').prop("disabled", true);
+	$('#Button2').prop("disabled", true);
+}
+
+function serverChangeEvent() {
+	var server =  $(this).find('option:selected').val();
+	
+	if (server == 'invalid') {
+		$('#Button1').prop("disabled", true);
+		$('#Button2').prop("disabled", true);
+	}
+	else {
+		$('#Button1').prop("disabled", false);
+		$('#Button2').prop("disabled", false);
+	}
+}
+
+function goToPublicServerEvent() {
+	var server =  $('#Combobox2').find('option:selected').val();
+	console.log(server);
+	if (server == 'invalid') return;
+	
+	chrome.tabs.create({
+     url: "http://www.agar.io/?sip=" + server
+	});
 }
