@@ -39,6 +39,7 @@ $(function() {
 	$('#Combobox1').change(regionChangeEvent);
 	$('#Combobox2').change(serverChangeEvent);
 	$('#Button1').click(goToPublicServerEvent);
+	$('#Button2').click(savePublicServer);
 });
 
 function serverListCallback(serverList) {
@@ -64,6 +65,11 @@ function serverListCallback(serverList) {
 			inRegion = ($.inArray(regionCode, regionTable[regions[i]]) != -1)? true : false;
 			if (inRegion){
 				region = regions[i];
+				// Store server for region
+				if (server.isEnabled) {
+					serverName = generateServerNameString(server.region)
+					options[region] += '<option value="' + server.ip + '">' + serverName + ' (' + server.ip + ') (' + server.numPlayers + ' players)</option>';
+				}
 			}
 		}
 		// Check if region wasn't added before
@@ -71,14 +77,8 @@ function serverListCallback(serverList) {
 			// Add region as option
 			$('#Combobox1').append('<option value="' + region + '">' + regionNames[region] + '</option>');
 		}
-		
-		// Store server for region
-		if (server.isEnabled) {
-			serverName = generateServerNameString(server.region)
-			options[region] += '<option value="' + server.ip + '">' + serverName + ' (' + server.ip + ') (' + server.numPlayers + ' players)</option>';
-		}
-	});
-	
+	});	
+
 	$('#Combobox1').prop("disabled", false);
 	$('#Combobox2').prop("disabled", false);
 }
@@ -135,4 +135,12 @@ function goToPublicServerEvent() {
 	chrome.tabs.create({
      url: "http://www.agar.io/?sip=" + server
 	});
+}
+
+function savePublicServer() {
+	var server =  $('#Combobox2').find('option:selected').val();
+	
+	if (server == 'invalid') return;
+	
+	
 }
