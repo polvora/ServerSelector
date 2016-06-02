@@ -38,7 +38,7 @@ $(function() {
 	$('#Combobox2').change(serverChangeEvent);
 	$('#Button1').click(goToPublicServerEvent);
 	
-	$('#Button2').click(saveServer);
+	$('#Button2').click(addServer);
 	$('#Button3').click(deleteServer);
 	
 	updateSavedServers();
@@ -140,36 +140,50 @@ function goToPublicServerEvent() {
 	});
 }
 
-function saveServer() {
+function addServer() {
 	var name =  $('#Editbox1').val();
 	var ip =  $('#Editbox2').val();
 	var item = {};
 	
 	if (name == '' || ip == '') return;
 
-	item[name] = ip;
+	item[ip] = name;
 	chrome.storage.sync.set(item, function(){
 		if (chrome.runtime.lastError) {
 			console.log(chrome.runtime.lastError.message);
 			return;
 		}
     });
-	updateSavedServers()
+	updateSavedServers();
 }
 
+function deleteServer() {
+	var ip = $('#Combobox3').find('option:selected').val();
+	
+	if (ip == 'invalid') return;
+	console.log(ip);
+	
+	chrome.storage.sync.remove(ip, function(){
+		if (chrome.runtime.lastError) {
+			console.log(chrome.runtime.lastError.message);
+			return;
+		}
+    });
+	updateSavedServers();
+}
 function updateSavedServers() {
-	chrome.storage.sync.get(null, function(ips) {
+	chrome.storage.sync.get(null, function(names) {
 		if (chrome.runtime.lastError) {
 			console.log(chrome.runtime.lastError.message);
 			return;
 		}
 		
-		var names = Object.keys(ips);
+		var ips = Object.keys(names);
 		var serversDropdown = $('#Combobox3');
 		serversDropdown.html('<option value="invalid">Select Server</option>');
-		for (var i in names) {
-			if (!names.hasOwnProperty(i)) continue;
-			serversDropdown.append('<option value="' + ips[names[i]] + '">' + names[i] + ' (' + ips[names[i]] + ')' + '</option>');
+		for (var i in ips) {
+			if (!ips.hasOwnProperty(i)) continue;
+			serversDropdown.append('<option value="' + ips[i] + '">' + names[ips[i]] + ' (' + ips[i] + ')' + '</option>');
 		}
 	});
 }
