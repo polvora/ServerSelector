@@ -24,6 +24,8 @@ var options = {
 	'OC': ''
 }
 
+var isDownloadingData;
+
 $(function() {
 	$('#Combobox1').html('<option selected value="invalid">Obtaining Server List...</option>');
 	$('#Combobox2').html('<option selected value="invalid">Obtaining Server List...</option>');
@@ -32,16 +34,21 @@ $(function() {
 	$('#Combobox2').prop("disabled", true);
 	$('#Button1').prop("disabled", true);
 	
+	isDownloadingData = true;
 	$.getJSON('http://m.agar.io/fullInfo', serverListCallback);
 
 	$('#Combobox1').change(regionChangeEvent);
 	$('#Combobox2').change(serverChangeEvent);
 	$('#Button1').click(goToPublicServerEvent);
 	
-	$('#Button2').click(addServer);
-	$('#Button3').click(deleteServer);
+	$('#Button2').click(addServerEvent);
+	$('#Button3').click(deleteServerEvent);
+	$('#Button5').click(goToSavedServerEvent);
 	
-	updateSavedServers();
+	$('#Combobox3').change(savedServerChangeEvent);
+	
+	
+	updateSavedServersList();
 });
 
 function serverListCallback(serverList) {
@@ -83,6 +90,7 @@ function serverListCallback(serverList) {
 		}
 	});	
 
+	isDownloadingData = false;
 	$('#Combobox1').prop("disabled", false);
 	$('#Combobox2').prop("disabled", false);
 }
@@ -118,15 +126,20 @@ function regionChangeEvent() {
 }
 
 function serverChangeEvent() {
-	var server =  $(this).find('option:selected').val();
+	var selected =  $(this).find('option:selected');
+	var ip = selected.val();
 	
-	if (server == 'invalid') {
+	if (ip == 'invalid') {
 		$('#Button1').prop("disabled", true);
-		$('#Editbox2').val('');
 	}
 	else {
+		var serverName = selected.html().substring(0, selected.html().indexOf(') (') + 1);
+		$('#Editbox1').val(serverName);
+		$('#Editbox2').val(ip);
+		
 		$('#Button1').prop("disabled", false);
-		$('#Editbox2').val(server);
+		$("#Combobox3").val('invalid');
+		$("#Combobox3").change();
 	}
 }
 
@@ -140,7 +153,7 @@ function goToPublicServerEvent() {
 	});
 }
 
-function addServer() {
+function addServerEvent() {
 	var name =  $('#Editbox1').val();
 	var ip =  $('#Editbox2').val();
 	var item = {};
@@ -154,14 +167,13 @@ function addServer() {
 			return;
 		}
     });
-	updateSavedServers();
+	updateSavedServersList();
 }
 
-function deleteServer() {
+function deleteServerEvent() {
 	var ip = $('#Combobox3').find('option:selected').val();
 	
 	if (ip == 'invalid') return;
-	console.log(ip);
 	
 	chrome.storage.sync.remove(ip, function(){
 		if (chrome.runtime.lastError) {
@@ -169,9 +181,9 @@ function deleteServer() {
 			return;
 		}
     });
-	updateSavedServers();
+	updateSavedServersList();
 }
-function updateSavedServers() {
+function updateSavedServersList() {
 	chrome.storage.sync.get(null, function(names) {
 		if (chrome.runtime.lastError) {
 			console.log(chrome.runtime.lastError.message);
@@ -185,5 +197,30 @@ function updateSavedServers() {
 			if (!ips.hasOwnProperty(i)) continue;
 			serversDropdown.append('<option value="' + ips[i] + '">' + names[ips[i]] + ' (' + ips[i] + ')' + '</option>');
 		}
+	});
+}
+
+function savedServerChangeEvent() {
+	var selected = $('#Combobox3').find('option:selected');
+	var ip = selected.val();
+	if (ip == 'invalid') return;
+	
+	var serverName = selected.html().substring(0, selected.html().indexOf(' (' + ip));
+	$('#Editbox1').val(serverName);
+	$('#Editbox2').val(ip);
+	
+	if (!isDownloadingData) {
+		$("#Combobox1").val('invalid');
+		$("#Combobox1").change();
+	}
+}
+
+function goToSavedServerEvent() {
+	var server =  $('#Combobox3').find('option:selected').val();
+	console.log(server);
+	if (server == 'invalid') return;
+	
+	chrome.tabs.create({
+     url: "http://www.agar.io/?sip=" + server
 	});
 }
