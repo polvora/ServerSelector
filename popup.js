@@ -15,7 +15,6 @@ var regionNames = {
     'SA': 'South America',
 	'OC': 'Oceania'
 }
-var serverList;
 
 var options = {
 	'NA': '',
@@ -32,14 +31,17 @@ $(function() {
 	$('#Combobox1').prop("disabled", true);
 	$('#Combobox2').prop("disabled", true);
 	$('#Button1').prop("disabled", true);
-	$('#Button2').prop("disabled", true);
 	
 	$.getJSON('http://m.agar.io/fullInfo', serverListCallback);
 
 	$('#Combobox1').change(regionChangeEvent);
 	$('#Combobox2').change(serverChangeEvent);
 	$('#Button1').click(goToPublicServerEvent);
-	$('#Button2').click(savePublicServer);
+	
+	$('#Button2').click(saveServer);
+	$('#Button3').click(deleteServer);
+	
+	updateSavedServers();
 });
 
 function serverListCallback(serverList) {
@@ -47,6 +49,7 @@ function serverListCallback(serverList) {
 	var inRegion = false;
 	var region = "";
 	var serverName = "";
+	var regionDropdown = $('#Combobox1');
 	
 	// Sort alphabetically
 	serverList.servers.sort(function (a, b) {
@@ -55,13 +58,14 @@ function serverListCallback(serverList) {
 		return 0;
 	});
 	
-	$('#Combobox1').html('<option value="invalid">Select Region...</option>');
-	$('#Combobox2').html('<option value="invalid">Select Server...</option>');
+	regionDropdown.html('<option value="invalid">Select Region</option>');
+	$('#Combobox2').html('<option value="invalid">Select Server</option>');
 	
 	$.each(serverList.servers, function(index, server) {
 		regionCode = server.region.substring(0,2);
 		// Obtain region of server
 		for (var i in regions) {
+			if (!regions.hasOwnProperty(i)) continue;
 			inRegion = ($.inArray(regionCode, regionTable[regions[i]]) != -1)? true : false;
 			if (inRegion){
 				region = regions[i];
@@ -73,9 +77,9 @@ function serverListCallback(serverList) {
 			}
 		}
 		// Check if region wasn't added before
-		if (!(~$('#Combobox1').html().indexOf(regionNames[region]))) {
+		if (!(~regionDropdown.html().indexOf(regionNames[region]))) {
 			// Add region as option
-			$('#Combobox1').append('<option value="' + region + '">' + regionNames[region] + '</option>');
+			regionDropdown.append('<option value="' + region + '">' + regionNames[region] + '</option>');
 		}
 	});	
 
@@ -107,11 +111,10 @@ function generateServerNameString(string) {
 function regionChangeEvent() {
 	var region =  $(this).find('option:selected').val();
 	
-	$('#Combobox2').html('<option value="invalid">Select Server...</option>');
+	$('#Combobox2').html('<option value="invalid">Select Server</option>');
 	if (region != 'invalid') $('#Combobox2').append(options[region]);
 	
 	$('#Button1').prop("disabled", true);
-	$('#Button2').prop("disabled", true);
 }
 
 function serverChangeEvent() {
@@ -119,11 +122,11 @@ function serverChangeEvent() {
 	
 	if (server == 'invalid') {
 		$('#Button1').prop("disabled", true);
-		$('#Button2').prop("disabled", true);
+		$('#Editbox2').val('');
 	}
 	else {
 		$('#Button1').prop("disabled", false);
-		$('#Button2').prop("disabled", false);
+		$('#Editbox2').val(server);
 	}
 }
 
@@ -137,10 +140,36 @@ function goToPublicServerEvent() {
 	});
 }
 
-function savePublicServer() {
-	var server =  $('#Combobox2').find('option:selected').val();
+function saveServer() {
+	var name =  $('#Editbox1').val();
+	var ip =  $('#Editbox2').val();
+	var item = {};
 	
-	if (server == 'invalid') return;
-	
-	
+	if (name == '' || ip == '') return;
+
+	item[name] = ip;
+	chrome.storage.sync.set(item, function(){
+		if (chrome.runtime.lastError) {
+			console.log(chrome.runtime.lastError.message);
+			return;
+		}
+    });
+	updateSavedServers()
+}
+
+function updateSavedServers() {
+	chrome.storage.sync.get(null, function(ips) {
+		if (chrome.runtime.lastError) {
+			console.log(chrome.runtime.lastError.message);
+			return;
+		}
+		
+		var names = Object.keys(ips);
+		var serversDropdown = $('#Combobox3');
+		serversDropdown.html('<option value="invalid">Select Server</option>');
+		for (var i in names) {
+			if (!names.hasOwnProperty(i)) continue;
+			serversDropdown.append('<option value="' + ips[names[i]] + '">' + names[i] + ' (' + ips[names[i]] + ')' + '</option>');
+		}
+	});
 }
