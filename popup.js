@@ -44,11 +44,13 @@ $(function() {
 	$('#Button2').click(addServerEvent);
 	$('#Button3').click(deleteServerEvent);
 	$('#Button5').click(goToSavedServerEvent);
+	$('#Button4').click(setDefaultServerEvent);
 	
 	$('#Combobox3').change(savedServerChangeEvent);
 	
 	
 	updateSavedServersList();
+	loadDefaultServerEvent();
 });
 
 function serverListCallback(serverList) {
@@ -194,7 +196,7 @@ function updateSavedServersList() {
 		var serversDropdown = $('#Combobox3');
 		serversDropdown.html('<option value="invalid">Select Server</option>');
 		for (var i in ips) {
-			if (!ips.hasOwnProperty(i)) continue;
+			if (!ips.hasOwnProperty(i) || ips[i] == 'default') continue;
 			serversDropdown.append('<option value="' + ips[i] + '">' + names[ips[i]] + ' (' + ips[i] + ')' + '</option>');
 		}
 	});
@@ -217,10 +219,43 @@ function savedServerChangeEvent() {
 
 function goToSavedServerEvent() {
 	var server =  $('#Combobox3').find('option:selected').val();
-	console.log(server);
 	if (server == 'invalid') return;
 	
 	chrome.tabs.create({
      url: "http://www.agar.io/?sip=" + server
+	});
+}
+
+function setDefaultServerEvent() {
+	var server =  $('#Combobox3').find('option:selected').val();
+	
+	chrome.storage.sync.set({'default': server}, function(){
+		if (chrome.runtime.lastError) {
+			console.log(chrome.runtime.lastError.message);
+			return;
+		}
+    });
+}
+
+function loadDefaultServerEvent() {
+	chrome.storage.sync.get('default', function(server) {
+		if (chrome.runtime.lastError) {
+			console.log(chrome.runtime.lastError.message);
+			return;
+		}
+		if (server['default'] == '') return;
+		if (server['default'] == null) return;
+		
+		var exists = false;
+		$('#Combobox3 option').each(function(){
+			if (this.value == server['default']) {
+				exists = true;
+				return false;
+			}
+		});
+		if (!exists) return;
+		
+		$('#Combobox3').val(server['default']);
+		
 	});
 }
