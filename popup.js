@@ -24,6 +24,9 @@ var options = {
 	'OC': ''
 }
 
+var reIP = '^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(:[0-9]{1,5})?$';
+var reHN = '^([a-zA-Z0-9]([a-zA-Z0-9\\-]{0,61}[a-zA-Z0-9])?\\.)+[a-zA-Z]{2,6}(:[0-9]{1,5})?$';
+
 var isDownloadingData;
 
 $(function() {
@@ -32,7 +35,6 @@ $(function() {
 	
 	$('#Combobox1').prop("disabled", true);
 	$('#Combobox2').prop("disabled", true);
-	$('#Button1').prop("disabled", true);
 	
 	isDownloadingData = true;
 	$.getJSON('http://m.agar.io/fullInfo', serverListCallback);
@@ -48,10 +50,47 @@ $(function() {
 	
 	$('#Combobox3').change(savedServerChangeEvent);
 	
+	$('#Editbox1').on('input', nameChangeEvent);
+	$('#Editbox2').on('input', addressChangeEvent);
 	
 	updateSavedServersList();
 	loadDefaultServerEvent();
 });
+
+function generateServerNameString(string) {
+	var code;
+	var hasColon;
+	var city;
+	var mode;
+	
+	code = string.substring(0,2);
+	hasColon = ~string.indexOf(':');
+	city = string.substring(string.indexOf('-') + 1, hasColon? string.indexOf(':') : string.length);
+	mode = hasColon? string.substring(string.indexOf(':') + 1) : 'ffa';
+	
+	switch(mode) {
+		case 'ffa': mode = 'FFA'; break;
+		case 'teams': mode = 'Teams'; break;
+		case 'experimental': mode = 'Exp'; break;
+		case 'party': mode = 'Party'; break;
+	}
+	
+	return code + ' ' + city + ' (' + mode + ')';
+}
+
+function highlightError(item) {
+	item.css("border", "1px solid red");
+}
+
+function highlightErrorTime(item, time) {
+	item.css("border", "1px solid red");
+	setTimeout(function(){item.css("border", "")}, time);
+}
+
+function turnOffErrorHiglight(item) {
+	item.css("border", "");
+}
+
 
 function serverListCallback(serverList) {
 	var regionCode = "";
@@ -97,58 +136,37 @@ function serverListCallback(serverList) {
 	$('#Combobox2').prop("disabled", false);
 }
 
-function generateServerNameString(string) {
-	var code;
-	var hasColon;
-	var city;
-	var mode;
-	
-	code = string.substring(0,2);
-	hasColon = ~string.indexOf(':');
-	city = string.substring(string.indexOf('-') + 1, hasColon? string.indexOf(':') : string.length);
-	mode = hasColon? string.substring(string.indexOf(':') + 1) : 'ffa';
-	
-	switch(mode) {
-		case 'ffa': mode = 'FFA'; break;
-		case 'teams': mode = 'Teams'; break;
-		case 'experimental': mode = 'Exp'; break;
-		case 'party': mode = 'Party'; break;
-	}
-	
-	return code + ' ' + city + ' (' + mode + ')';
-}
-
 function regionChangeEvent() {
 	var region =  $(this).find('option:selected').val();
 	
 	$('#Combobox2').html('<option value="invalid">Select Server</option>');
 	if (region != 'invalid') $('#Combobox2').append(options[region]);
-	
-	$('#Button1').prop("disabled", true);
 }
 
 function serverChangeEvent() {
 	var selected =  $(this).find('option:selected');
 	var ip = selected.val();
 	
-	if (ip == 'invalid') {
-		$('#Button1').prop("disabled", true);
-	}
-	else {
+	if (ip != 'invalid') {
 		var serverName = selected.html().substring(0, selected.html().indexOf(') (') + 1);
 		$('#Editbox1').val(serverName);
 		$('#Editbox2').val(ip);
 		
-		$('#Button1').prop("disabled", false);
 		$("#Combobox3").val('invalid');
 		$("#Combobox3").change();
 	}
 }
 
 function goToPublicServerEvent() {
+	var region =  $('#Combobox1').find('option:selected').val();
 	var server =  $('#Combobox2').find('option:selected').val();
-	console.log(server);
-	if (server == 'invalid') return;
+	
+	if (region == 'invalid') highlightErrorTime($('#Combobox1'), 1000);
+	
+	if (server == 'invalid') {
+		highlightErrorTime($('#Combobox2'), 1000);
+		return;
+	}
 	
 	chrome.tabs.create({
      url: "http://www.agar.io/?sip=" + server
@@ -160,7 +178,15 @@ function addServerEvent() {
 	var ip =  $('#Editbox2').val();
 	var item = {};
 	
-	if (name == '' || ip == '') return;
+	var validIp = ip.match(reIP) || ip.match(reHN);
+	
+	if (name != '') turnOffErrorHiglight($('#Editbox1'));
+	else highlightErrorTime($('#Editbox1'), 1000);
+	
+	if (validIp) turnOffErrorHiglight($('#Editbox2'));
+	else highlightErrorTime($('#Editbox2'), 1000);
+	
+	if (name == '' || !validIp) return;
 
 	item[ip] = name;
 	chrome.storage.sync.set(item, function(){
@@ -175,17 +201,28 @@ function addServerEvent() {
 function deleteServerEvent() {
 	var ip = $('#Combobox3').find('option:selected').val();
 	
-	if (ip == 'invalid') return;
+	if (ip == 'invalid') {
+		highlightErrorTime($('#Combobox3'), 1000);
+		return;
+	}
+	turnOffErrorHiglight($('#Combobox3'));
 	
 	chrome.storage.sync.remove(ip, function(){
-		if (chrome.runtime.lastError) {
+		if (chrome.runtime.lastError)
 			console.log(chrome.runtime.lastError.message);
-			return;
-		}
     });
 	updateSavedServersList();
 }
 function updateSavedServersList() {
+	var defaultServer;
+	
+	chrome.storage.sync.get('default', function(server) {
+		if (chrome.runtime.lastError) {
+			console.log(chrome.runtime.lastError.message);
+		}
+		defaultServer = server['default'];
+	});
+	
 	chrome.storage.sync.get(null, function(names) {
 		if (chrome.runtime.lastError) {
 			console.log(chrome.runtime.lastError.message);
@@ -194,10 +231,13 @@ function updateSavedServersList() {
 		
 		var ips = Object.keys(names);
 		var serversDropdown = $('#Combobox3');
+		var defaultPrefix = '';
 		serversDropdown.html('<option value="invalid">Select Server</option>');
 		for (var i in ips) {
 			if (!ips.hasOwnProperty(i) || ips[i] == 'default') continue;
-			serversDropdown.append('<option value="' + ips[i] + '">' + names[ips[i]] + ' (' + ips[i] + ')' + '</option>');
+			
+			defaultPrefix = (ips[i] == names['default'])? '&#8226; ' : '';
+			serversDropdown.append('<option value="' + ips[i] + '">' + defaultPrefix + names[ips[i]] + ' (' + ips[i] + ')' + '</option>');
 		}
 	});
 }
@@ -205,6 +245,8 @@ function updateSavedServersList() {
 function savedServerChangeEvent() {
 	var selected = $('#Combobox3').find('option:selected');
 	var ip = selected.val();
+	
+	$(this).css("border", "");
 	if (ip == 'invalid') return;
 	
 	var serverName = selected.html().substring(0, selected.html().indexOf(' (' + ip));
@@ -219,7 +261,10 @@ function savedServerChangeEvent() {
 
 function goToSavedServerEvent() {
 	var server =  $('#Combobox3').find('option:selected').val();
-	if (server == 'invalid') return;
+	if (server == 'invalid') {
+		highlightErrorTime($('#Combobox3'), 1000);
+		return;
+	}
 	
 	chrome.tabs.create({
      url: "http://www.agar.io/?sip=" + server
@@ -228,13 +273,25 @@ function goToSavedServerEvent() {
 
 function setDefaultServerEvent() {
 	var server =  $('#Combobox3').find('option:selected').val();
+	var savedServer;
+	var success = true;
 	
-	chrome.storage.sync.set({'default': server}, function(){
+	chrome.storage.sync.get('default', function(defaultServer) {
 		if (chrome.runtime.lastError) {
 			console.log(chrome.runtime.lastError.message);
 			return;
 		}
+		savedServer = defaultServer['default']
+	});
+	
+	chrome.storage.sync.set({'default': server}, function(){
+		if (chrome.runtime.lastError) {
+			console.log(chrome.runtime.lastError.message);
+			success = false;
+		}
     });
+		$('#Combobox3').find('option:selected')
+		.html('&#8226; ' + $('#Combobox3').find('option:selected').html());
 }
 
 function loadDefaultServerEvent() {
@@ -246,6 +303,7 @@ function loadDefaultServerEvent() {
 		if (server['default'] == '') return;
 		if (server['default'] == null) return;
 		
+		// Checks if default server still exists as a saved server.
 		var exists = false;
 		$('#Combobox3 option').each(function(){
 			if (this.value == server['default']) {
@@ -253,9 +311,31 @@ function loadDefaultServerEvent() {
 				return false;
 			}
 		});
-		if (!exists) return;
 		
+		// If it doesn't exists deletes it from default.
+		if (!exists) {
+			chrome.storage.sync.remove(['default'], function(){
+				if (chrome.runtime.lastError)
+					console.log(chrome.runtime.lastError.message);
+			});
+			return;
+		}
 		$('#Combobox3').val(server['default']);
-		
 	});
+}
+
+function nameChangeEvent() {
+	var input = $(this).val();
+	
+	if (input != '') turnOffErrorHiglight($(this));
+	else highlightError($(this));
+}
+
+function addressChangeEvent() {
+	var input = $(this).val();
+	
+	if (input.match(reIP) || input.match(reHN)) 
+		turnOffErrorHiglight($(this));
+	else 
+		highlightError($(this));
 }
