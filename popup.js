@@ -54,7 +54,6 @@ $(function() {
 	$('#Editbox2').on('input', addressChangeEvent);
 	
 	updateSavedServersList();
-	loadDefaultServerEvent();
 });
 
 function generateServerNameString(string) {
@@ -177,17 +176,23 @@ function addServerEvent() {
 	var name =  $('#Editbox1').val();
 	var ip =  $('#Editbox2').val();
 	var item = {};
+	var isDuplicate = false;
 	
 	var validIp = ip.match(reIP) || ip.match(reHN);
 	
-	if (name != '') turnOffErrorHiglight($('#Editbox1'));
-	else highlightErrorTime($('#Editbox1'), 1000);
-	
-	if (validIp) turnOffErrorHiglight($('#Editbox2'));
-	else highlightErrorTime($('#Editbox2'), 1000);
+	if (name == '') highlightErrorTime($('#Editbox1'), 1000);
+	if (!validIp) highlightErrorTime($('#Editbox2'), 1000);
 	
 	if (name == '' || !validIp) return;
-
+	
+	$("#Combobox3 > option").each(function() {
+		 if (this.value == ip) {
+			 isDuplicate = true;
+			 console.log('Duplicated ip entry.');
+		 }
+	});
+	if (isDuplicate) return;
+	
 	item[ip] = name;
 	chrome.storage.sync.set(item, function(){
 		if (chrome.runtime.lastError) {
@@ -214,15 +219,6 @@ function deleteServerEvent() {
 	updateSavedServersList();
 }
 function updateSavedServersList() {
-	var defaultServer;
-	
-	chrome.storage.sync.get('default', function(server) {
-		if (chrome.runtime.lastError) {
-			console.log(chrome.runtime.lastError.message);
-		}
-		defaultServer = server['default'];
-	});
-	
 	chrome.storage.sync.get(null, function(names) {
 		if (chrome.runtime.lastError) {
 			console.log(chrome.runtime.lastError.message);
@@ -231,32 +227,58 @@ function updateSavedServersList() {
 		
 		var ips = Object.keys(names);
 		var serversDropdown = $('#Combobox3');
+		var isDefaultServerOnList;
 		var defaultPrefix = '';
+		
+		// Generates server list
 		serversDropdown.html('<option value="invalid">Select Server</option>');
 		for (var i in ips) {
 			if (!ips.hasOwnProperty(i) || ips[i] == 'default') continue;
 			
-			defaultPrefix = (ips[i] == names['default'])? '&#8226; ' : '';
+			if(ips[i] == names['default']) {
+				isDefaultServerOnList = true;
+				defaultPrefix = '&spades; ';
+			}
+			else defaultPrefix = '';
+			
+			// Adds a bullet as prefix if this is the default server
 			serversDropdown.append('<option value="' + ips[i] + '">' + defaultPrefix + names[ips[i]] + ' (' + ips[i] + ')' + '</option>');
 		}
+		
+		// If default server is not present on list it's deleted
+		if (!isDefaultServerOnList) {
+			chrome.storage.sync.remove(['default'], function(){
+				if (chrome.runtime.lastError)
+					console.log(chrome.runtime.lastError.message);
+			});
+		}
+		else $('#Combobox3').val(names['default']);
 	});
 }
 
 function savedServerChangeEvent() {
 	var selected = $('#Combobox3').find('option:selected');
 	var ip = selected.val();
+	var serverName;
 	
 	$(this).css("border", "");
 	if (ip == 'invalid') return;
 	
-	var serverName = selected.html().substring(0, selected.html().indexOf(' (' + ip));
-	$('#Editbox1').val(serverName);
-	$('#Editbox2').val(ip);
-	
-	if (!isDownloadingData) {
-		$("#Combobox1").val('invalid');
-		$("#Combobox1").change();
-	}
+	chrome.storage.sync.get(ip, function(item){
+		if (chrome.runtime.lastError) {
+			console.log(chrome.runtime.lastError.message);
+			return;
+		}
+		serverName = item[ip];
+		
+		$('#Editbox1').val(serverName);
+		$('#Editbox2').val(ip);
+		
+		if (!isDownloadingData) {
+			$("#Combobox1").val('invalid');
+			$("#Combobox1").change();
+		}
+	});
 }
 
 function goToSavedServerEvent() {
@@ -273,55 +295,13 @@ function goToSavedServerEvent() {
 
 function setDefaultServerEvent() {
 	var server =  $('#Combobox3').find('option:selected').val();
-	var savedServer;
-	var success = true;
-	
-	chrome.storage.sync.get('default', function(defaultServer) {
-		if (chrome.runtime.lastError) {
-			console.log(chrome.runtime.lastError.message);
-			return;
-		}
-		savedServer = defaultServer['default']
-	});
 	
 	chrome.storage.sync.set({'default': server}, function(){
 		if (chrome.runtime.lastError) {
 			console.log(chrome.runtime.lastError.message);
-			success = false;
 		}
     });
-		$('#Combobox3').find('option:selected')
-		.html('&#8226; ' + $('#Combobox3').find('option:selected').html());
-}
-
-function loadDefaultServerEvent() {
-	chrome.storage.sync.get('default', function(server) {
-		if (chrome.runtime.lastError) {
-			console.log(chrome.runtime.lastError.message);
-			return;
-		}
-		if (server['default'] == '') return;
-		if (server['default'] == null) return;
-		
-		// Checks if default server still exists as a saved server.
-		var exists = false;
-		$('#Combobox3 option').each(function(){
-			if (this.value == server['default']) {
-				exists = true;
-				return false;
-			}
-		});
-		
-		// If it doesn't exists deletes it from default.
-		if (!exists) {
-			chrome.storage.sync.remove(['default'], function(){
-				if (chrome.runtime.lastError)
-					console.log(chrome.runtime.lastError.message);
-			});
-			return;
-		}
-		$('#Combobox3').val(server['default']);
-	});
+	updateSavedServersList();
 }
 
 function nameChangeEvent() {
