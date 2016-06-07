@@ -10,9 +10,16 @@
     "default_popup": "popup.html",
     "default_title": "Select Agar.io Server"
   },
+  
+  "background": {
+    "scripts": ["events.js"],
+    "persistent": false
+  },
+  
   "permissions": [
     "tabs",
 	"*://*.agar.io/*",
-	"storage"
+	"storage",
+	"clipboardWrite"
   ]
 }

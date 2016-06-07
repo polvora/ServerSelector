@@ -57,6 +57,9 @@ $(function() {
 	$('#Editbox1').on('input', nameChangeEvent);
 	$('#Editbox2').on('input', addressChangeEvent);
 	
+	$('#Button6').click(copyPublicLinkEvent);
+	$('#Button7').click(copyPrivateLinkEvent);
+	
 	updateSavedServersList();
 });
 
@@ -97,6 +100,16 @@ function turnOffErrorHiglight(item) {
 function showToast(message, time) {
 	$('#toastContent').text(message);
 	$('#toast').stop().fadeIn(200).delay(time).fadeOut(200);
+}
+
+function copyToClipboard(message) {
+	var input = document.createElement('textarea');
+	document.body.appendChild(input);
+	input.value = message;
+	input.focus();
+	input.select();
+	document.execCommand('Copy');
+	input.remove();
 }
 
 function serverListCallback(serverList) {
@@ -196,7 +209,8 @@ function addServerEvent() {
 	$("#Combobox3 > option").each(function() {
 		 if (this.value == ip) {
 			 isDuplicate = true;
-			 console.log('Duplicated ip entry.');
+			 highlightErrorTime($('#Editbox2'), 1500);
+			 showToast('Address Already Exists', 1500);
 		 }
 	});
 	if (isDuplicate) return;
@@ -331,4 +345,30 @@ function addressChangeEvent() {
 		turnOffErrorHiglight($(this));
 	else 
 		highlightError($(this));
+}
+
+function copyPublicLinkEvent() {
+	var address = $('#Combobox2').find('option:selected').val();
+	
+	if ($('#Combobox1').find('option:selected').val() == 'invalid') {
+		highlightErrorTime($('#Combobox1'), 1200);
+	}
+	if (address == 'invalid') {
+		highlightErrorTime($('#Combobox2'), 1200);
+		return;
+	}
+	copyToClipboard("http://www.agar.io/?sip=" + address);
+	
+	showToast('Copied to Clipboard', 2000);
+}
+
+function copyPrivateLinkEvent() {
+	var address = $('#Combobox3').find('option:selected').val();
+	if (address == 'invalid') {
+		highlightErrorTime($('#Combobox3'), 1200);
+		return;
+	}
+	copyToClipboard("http://www.agar.io/?sip=" + address);
+	
+	showToast('Copied to Clipboard', 2000);
 }
