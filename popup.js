@@ -30,6 +30,10 @@ var reHN = '^([a-zA-Z0-9]([a-zA-Z0-9\\-]{0,61}[a-zA-Z0-9])?\\.)+[a-zA-Z]{2,6}(:[
 var isDownloadingData;
 
 $(function() {
+	$.get('toast.html', function(data){
+		$('body').prepend(data);
+	});
+	
 	$('#Combobox1').html('<option selected value="invalid">Obtaining Server List...</option>');
 	$('#Combobox2').html('<option selected value="invalid">Obtaining Server List...</option>');
 	
@@ -90,6 +94,10 @@ function turnOffErrorHiglight(item) {
 	item.css("border", "");
 }
 
+function showToast(message, time) {
+	$('#toastContent').text(message);
+	$('#toast').stop().fadeIn(200).delay(time).fadeOut(200);
+}
 
 function serverListCallback(serverList) {
 	var regionCode = "";
@@ -201,6 +209,7 @@ function addServerEvent() {
 		}
     });
 	updateSavedServersList();
+	showToast('Server Added to List', 1500);
 }
 
 function deleteServerEvent() {
@@ -217,6 +226,7 @@ function deleteServerEvent() {
 			console.log(chrome.runtime.lastError.message);
     });
 	updateSavedServersList();
+	showToast('Server Deleted', 1500);
 }
 function updateSavedServersList() {
 	chrome.storage.sync.get(null, function(names) {
@@ -302,6 +312,9 @@ function setDefaultServerEvent() {
 		}
     });
 	updateSavedServersList();
+	
+	if (server != 'invalid') showToast('Sever Set as Default', 1500);
+	else showToast('Default Server Unset', 1500);
 }
 
 function nameChangeEvent() {
