@@ -297,7 +297,7 @@ function addServerEvent() {
 			return;
 		}
     });
-	updateSavedServersList();
+	updateSavedServersList(ip);
 	showToast('Server Added to List', 1500);
 }
 
@@ -317,7 +317,8 @@ function deleteServerEvent() {
 	updateSavedServersList();
 	showToast('Server Deleted', 1500);
 }
-function updateSavedServersList() {
+
+function updateSavedServersList(selectedValue = null) {
 	chrome.storage.sync.get(null, function(names) {
 		if (chrome.runtime.lastError) {
 			console.log(chrome.runtime.lastError.message);
@@ -352,6 +353,9 @@ function updateSavedServersList() {
 			});
 		}
 		else $('#Combobox3').val(names['default']);
+		
+		if (selectedValue != null) 
+			$('#Combobox3').val(selectedValue);
 	});
 }
 
