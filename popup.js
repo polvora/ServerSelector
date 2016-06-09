@@ -26,6 +26,7 @@ var options = {
 
 var reIP = new RegExp('^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(:[0-9]{1,5})?$');
 var reHN = new RegExp('^([a-zA-Z0-9]([a-zA-Z0-9\\-]{0,61}[a-zA-Z0-9])?\\.)+[a-zA-Z]{2,6}(:[0-9]{1,5})?$');
+var reDomain = new RegExp('^[a-zA-Z]*:\/\/([a-zA-Z]+\.)*agar\.io\/.*$');
 
 var isDownloadingData;
 
@@ -62,7 +63,12 @@ $(function() {
 	$('#Button8').click(copyCurrentLinkEvent);
 	
 	updateSavedServersList();
-	requestAddressFromPage();
+	
+	chrome.tabs.query({'active': true, 'currentWindow': true}, function (tabs) {
+		if (reDomain.test(tabs[0].url) {
+			requestAddressFromPage();
+		}
+	});
 });
 
 function listenMessages() {

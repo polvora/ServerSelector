@@ -13,6 +13,7 @@
   
   "permissions": [
     "tabs",
+	"activeTab",
 	"*://*.agar.io/*",
 	"storage",
 	"clipboardWrite"
