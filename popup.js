@@ -65,7 +65,7 @@ $(function() {
 	updateSavedServersList();
 	
 	chrome.tabs.query({'active': true, 'currentWindow': true}, function (tabs) {
-		if (reDomain.test(tabs[0].url) {
+		if (reDomain.test(tabs[0].url)) {
 			requestAddressFromPage();
 		}
 	});
@@ -257,8 +257,14 @@ function goToPublicServerEvent() {
 		return;
 	}
 	
-	chrome.tabs.create({
-     url: "http://www.agar.io/?sip=" + server
+	chrome.tabs.query({'active': true, 'currentWindow': true}, function (tabs) {
+		var url = "http://www.agar.io/?sip=" + server;
+		if (reDomain.test(tabs[0].url)) {
+			chrome.tabs.update(tabs[0].id, {url: url});
+		}
+		else {
+			chrome.tabs.create({url: url});
+		}
 	});
 }
 
@@ -381,8 +387,14 @@ function goToSavedServerEvent() {
 		return;
 	}
 	
-	chrome.tabs.create({
-     url: "http://www.agar.io/?sip=" + server
+	chrome.tabs.query({'active': true, 'currentWindow': true}, function (tabs) {
+		var url = "http://www.agar.io/?sip=" + server;
+		if (reDomain.test(tabs[0].url)) {
+			chrome.tabs.update(tabs[0].id, {url: url});
+		}
+		else {
+			chrome.tabs.create({url: url});
+		}
 	});
 }
 
