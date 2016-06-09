@@ -24,15 +24,15 @@ var options = {
 	'OC': ''
 }
 
-var reIP = '^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(:[0-9]{1,5})?$';
-var reHN = '^([a-zA-Z0-9]([a-zA-Z0-9\\-]{0,61}[a-zA-Z0-9])?\\.)+[a-zA-Z]{2,6}(:[0-9]{1,5})?$';
+var reIP = new RegExp('^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(:[0-9]{1,5})?$');
+var reHN = new RegExp('^([a-zA-Z0-9]([a-zA-Z0-9\\-]{0,61}[a-zA-Z0-9])?\\.)+[a-zA-Z]{2,6}(:[0-9]{1,5})?$');
 
 var isDownloadingData;
 
 $(function() {
-	$.get('toast.html', function(data){
-		$('body').prepend(data);
-	});
+	listenMessages();
+	
+	$.get('toast.html', function(d){$('body').prepend(d);});
 	
 	$('#Combobox1').html('<option selected value="invalid">Obtaining Server List...</option>');
 	$('#Combobox2').html('<option selected value="invalid">Obtaining Server List...</option>');
@@ -59,9 +59,72 @@ $(function() {
 	
 	$('#Button6').click(copyPublicLinkEvent);
 	$('#Button7').click(copyPrivateLinkEvent);
+	$('#Button8').click(copyCurrentLinkEvent);
 	
 	updateSavedServersList();
+	requestAddressFromPage();
 });
+
+function listenMessages() {
+	chrome.runtime.onMessage.addListener(function(message, sender, sendResponse) {
+		if (message.address != null && reIP.test(message.address)) {
+			$('#wb_uid9 strong').text(message.address);
+			document.body.style.height="520px";
+			document.getElementsByTagName("html")[0].style.height="520px";
+			$('#Editbox2').val(message.address);
+		}
+	});
+}
+
+function requestAddressFromPage() {
+	// CONTENT SCRIPT
+	// Has not access to web page variable
+	// Running in extension context
+	var contentScript = function() {
+		// Event that listens to messages sent from web page
+		// It will be self removed after execution
+		// Resends messages from web page to popup (this file)
+		var bridgeFunction = function(event) {
+			chrome.runtime.sendMessage({address: event.detail});
+			// Self removal of event
+			document.removeEventListener(event.type, bridgeFunction);
+			// Removal of injected element script
+			var scriptElement = document.getElementById('serverSelectorInjection');
+			scriptElement.parentNode.removeChild(scriptElement);
+		};
+		document.addEventListener('message', bridgeFunction);
+		
+		// Code that will be injected as a script element in the web page
+		// It has access to javascript variables inside
+		// It will be removed by content script after execution
+		var codeToInject = function() {
+			var __WS_send=WebSocket.prototype.send;
+			WebSocket.prototype.send = function(data) {
+				var address = '';
+				try {
+					var re=/(?:[0-9]{1,3}\.){1,3}[0-9]{1,3}\:[0-9]{1,5}/;
+					address = re.exec(this.url)[0];
+				}catch(err) {}
+				__WS_send.apply(this,[data]);
+				WebSocket.prototype.send=__WS_send;
+				
+				var event = new CustomEvent('message', { 'detail': address });
+				document.dispatchEvent(event);
+			}
+		}
+		
+		var container = document.createElement('div');
+		container.id = 'serverSelectorInjection';
+		var script = document.createElement('script');
+		script.appendChild(document.createTextNode('('+ codeToInject +')();'));
+		container.appendChild(script);
+		(document.body || document.head || document.documentElement).appendChild(container);
+	};
+	
+	chrome.tabs.executeScript({
+		code: '(' + contentScript + ')();'
+	});
+}
 
 function generateServerNameString(string) {
 	var code;
@@ -74,7 +137,7 @@ function generateServerNameString(string) {
 	city = string.substring(string.indexOf('-') + 1, hasColon? string.indexOf(':') : string.length);
 	mode = hasColon? string.substring(string.indexOf(':') + 1) : 'ffa';
 	
-	switch(mode) {
+	switch (mode) {
 		case 'ffa': mode = 'FFA'; break;
 		case 'teams': mode = 'Teams'; break;
 		case 'experimental': mode = 'Exp'; break;
@@ -199,7 +262,7 @@ function addServerEvent() {
 	var item = {};
 	var isDuplicate = false;
 	
-	var validIp = ip.match(reIP) || ip.match(reHN);
+	var validIp = reIP.test(ip) || reHN.test(ip);
 	
 	if (name == '') highlightErrorTime($('#Editbox1'), 1000);
 	if (!validIp) highlightErrorTime($('#Editbox2'), 1000);
@@ -341,7 +404,7 @@ function nameChangeEvent() {
 function addressChangeEvent() {
 	var input = $(this).val();
 	
-	if (input.match(reIP) || input.match(reHN)) 
+	if (reIP.test(input) || reHN.test(input))
 		turnOffErrorHiglight($(this));
 	else 
 		highlightError($(this));
@@ -370,5 +433,11 @@ function copyPrivateLinkEvent() {
 	}
 	copyToClipboard("http://www.agar.io/?sip=" + address);
 	
+	showToast('Copied to Clipboard', 2000);
+}
+
+function copyCurrentLinkEvent() {
+	var address = $('#wb_uid9 strong').text();
+	copyToClipboard("http://www.agar.io/?sip=" + address);
 	showToast('Copied to Clipboard', 2000);
 }

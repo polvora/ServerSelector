@@ -1,19 +1,14 @@
 {
   "manifest_version": 2,
 
-  "name": "Agar.io Server Selection Shortcut",
-  "description": "Let's you select the specific servers to play with your friends",
+  "name": "Agar.io Server Selector",
+  "description": "Let's you select specific servers to play with your friends",
   "version": "1.0",
 
   "browser_action": {
     "default_icon": "icon.png",
     "default_popup": "popup.html",
     "default_title": "Select Agar.io Server"
-  },
-  
-  "background": {
-    "scripts": ["events.js"],
-    "persistent": false
   },
   
   "permissions": [
