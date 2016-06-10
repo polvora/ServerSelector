@@ -67,9 +67,24 @@ $(function() {
 	chrome.tabs.query({'active': true, 'currentWindow': true}, function (tabs) {
 		if (reDomain.test(tabs[0].url)) {
 			requestAddressFromPage();
+			requestSkinInformation();
 		}
 	});
 });
+
+function loadSkin() {
+	console.log(1);
+	chrome.storage.sync.get(['skinSource', 'skinBorder'], function(items) {
+		if (chrome.runtime.lastError) {
+			console.log(chrome.runtime.lastError.message);
+		}
+		console.log(items['skinSource']);
+		if (items != null && items['skinSource'] != null && items['skinBorder'] != null) {
+			$('#Image3').attr('src',items['skinSource']);
+			$('#Image3').css('border-color',items['skinBorder']);
+		}
+	});
+}
 
 function listenMessages() {
 	chrome.runtime.onMessage.addListener(function(message, sender, sendResponse) {
@@ -78,6 +93,18 @@ function listenMessages() {
 			document.body.style.height="520px";
 			document.getElementsByTagName("html")[0].style.height="520px";
 			$('#Editbox2').val(message.address);
+		}
+		else if (message.skinSource != null && message.skinBorder != null) {
+			chrome.storage.sync.set({
+				skinSource: message.skinSource,
+				skinBorder: message.skinBorder}, 
+				function(){
+				if (chrome.runtime.lastError) {
+					console.log(chrome.runtime.lastError.message);
+				}
+				loadSkin();
+			});
+			
 		}
 	});
 }
@@ -125,6 +152,24 @@ function requestAddressFromPage() {
 		script.appendChild(document.createTextNode('('+ codeToInject +')();'));
 		container.appendChild(script);
 		(document.body || document.head || document.documentElement).appendChild(container);
+	};
+	
+	chrome.tabs.executeScript({
+		code: '(' + contentScript + ')();'
+	});
+}
+
+// Injects a Code Script that gathers the required info
+function requestSkinInformation() {
+	var contentScript = function () {
+		var skinElement = document.getElementsByClassName("circle bordered")[0];
+		if (skinElement == null) return;
+		var skinSource = skinElement.src;
+		var skinBorder = skinElement.style.borderColor;
+		
+		chrome.runtime.sendMessage({
+			skinSource: skinSource, 
+			skinBorder: skinBorder});
 	};
 	
 	chrome.tabs.executeScript({
