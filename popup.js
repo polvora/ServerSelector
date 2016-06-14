@@ -44,7 +44,7 @@ $(function() {
 	
 	isDownloadingData = true;
 	$.getJSON('http://m.agar.io/fullInfo', serverListCallback);
-
+	
 	$('#Combobox1').change(regionChangeEvent);
 	$('#Combobox2').change(serverChangeEvent);
 	$('#Button1').click(goToPublicServerEvent);
@@ -80,12 +80,13 @@ function loadSkin() {
 			console.log(chrome.runtime.lastError.message);
 		}
 		if (items != null && items['skinSource'] != null && items['skinBorder'] != null) {
+			var originalBorder = $('#Image3').css('border-color');
 			// This image is created to pass it as canvas to icon
 			var img = document.getElementById('Image3');
 			img.crossOrigin = "Anonymous";
 			// This is to wait it to download the image from the url
 			img.onload = function() {
-				$(this).css('border-color',items['skinBorder']);
+				$('#Image3').css('border-color',items['skinBorder']);
 				var border = 10;
 				var canvas = document.createElement('canvas'); // Create the canvas
 				canvas.width = 150;
@@ -113,15 +114,19 @@ function loadSkin() {
 			
 			$('img').one('error', function() { 
 				chrome.browserAction.setIcon({
-					path: 'icon.png'
+					path: 'icon19.png'
 				});
+				$('#Image3').css('border-color', originalBorder);
+				$('#Image3').attr('src','cell.png');
 				$('#Image3').css('display','block');
 			});
 		}
 		else {
 			chrome.browserAction.setIcon({
-					path: 'icon.png'
+					path: 'icon19.png'
 				});
+			$('#Image3').css('border-color', originalBorder);
+			$('#Image3').attr('src','cell.png');
 			$('#Image3').css('display','block');
 		}
 	});
