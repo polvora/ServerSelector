@@ -223,6 +223,19 @@ function requestSkinInformation() {
 	});
 }
 
+function goToServer(address) {
+	chrome.tabs.query({'active': true, 'currentWindow': true}, function (tabs) {
+		var url = "http://www.agar.io/?sip=" + address;
+		if (reDomain.test(tabs[0].url)) {
+			chrome.tabs.update(tabs[0].id, {url: url}); 
+		}
+		else {
+			chrome.tabs.create({url: url});
+		}
+	});
+	
+}
+
 function generateServerNameString(string) {
 	var code;
 	var hasColon;
@@ -347,16 +360,7 @@ function goToPublicServerEvent() {
 		highlightErrorTime($('#Combobox2'), 1000);
 		return;
 	}
-	
-	chrome.tabs.query({'active': true, 'currentWindow': true}, function (tabs) {
-		var url = "http://www.agar.io/?sip=" + server;
-		if (reDomain.test(tabs[0].url)) {
-			chrome.tabs.update(tabs[0].id, {url: url});
-		}
-		else {
-			chrome.tabs.create({url: url});
-		}
-	});
+	goToServer(server);
 }
 
 function addServerEvent() {
@@ -482,15 +486,7 @@ function goToSavedServerEvent() {
 		return;
 	}
 	
-	chrome.tabs.query({'active': true, 'currentWindow': true}, function (tabs) {
-		var url = "http://www.agar.io/?sip=" + server;
-		if (reDomain.test(tabs[0].url)) {
-			chrome.tabs.update(tabs[0].id, {url: url});
-		}
-		else {
-			chrome.tabs.create({url: url});
-		}
-	});
+	goToServer(server);
 }
 
 function setDefaultServerEvent() {
