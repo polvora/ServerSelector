@@ -110,7 +110,7 @@ function loadSkin() {
 				});
 				$('#Image3').css('display','block');
 			}
-			$('#Image3').attr('src',items['skinSource']);
+			$('#Image3').attr('src','https://crossorigin.me/' + items['skinSource']);
 			
 			$('img').one('error', function() { 
 				chrome.browserAction.setIcon({
