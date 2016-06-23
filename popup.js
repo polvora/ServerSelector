@@ -428,7 +428,8 @@ function updateSavedServersList(selectedValue = null) {
 		// Generates server list
 		serversDropdown.html('<option value="invalid">Select Server</option>');
 		for (var i in ips) {
-			if (!ips.hasOwnProperty(i) || ips[i] == 'default') continue;
+			if (!ips.hasOwnProperty(i) || ips[i] == 'default' ||
+					ips[i] == 'skinSource'|| ips[i] == 'skinBorder') continue;
 			
 			if(ips[i] == names['default']) {
 				isDefaultServerOnList = true;
